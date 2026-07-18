@@ -213,8 +213,8 @@ body {
 
 .quick-actions {
   display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .quick-btn {
@@ -299,6 +299,11 @@ body {
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
+}
+
+
+#modalContent + .close-btn {
+  margin-top: 14px;
 }
 
 .category-detail-card {
@@ -437,7 +442,7 @@ body {
 .result-section.caution h4 { color: #E65100; }
 .modal-action-button { margin-top: 8px; }
 .muted-text { color: #999; }
-.vertical-list { display: flex; flex-direction: column; gap: 8px; }
+.vertical-list { display: flex; flex-direction: column; gap: 12px; }
 .clickable { cursor: pointer; }
 .secondary-close-btn { background: #999; }
 
@@ -573,13 +578,13 @@ button[hidden] { display: none !important; }
 .modal-button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 14px;
 }
 
 .modal-button-stack {
   display: grid;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .secondary-action,

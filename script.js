@@ -128,11 +128,26 @@ function isGenericItemName(value) {
 
 function updateGreeting() {
   const hour = new Date().getHours();
+
   let greeting;
-  if (hour < 12) greeting = '좋은 아침이에요!';
-  else if (hour < 18) greeting = '즐거운 오후예요!';
-  else greeting = '고생 많으셨어요!';
-  document.getElementById('greetingText').textContent = `${greeting} ☀️`;
+  let emoji;
+
+  if (hour < 6) {
+    greeting = '늦은 새벽이에요!';
+    emoji = '🌙';
+  } else if (hour < 12) {
+    greeting = '좋은 아침이에요!';
+    emoji = '☀️';
+  } else if (hour < 18) {
+    greeting = '즐거운 오후예요!';
+    emoji = '🌤️';
+  } else {
+    greeting = '고생 많으셨어요!';
+    emoji = '🌙';
+  }
+
+  document.getElementById('greetingText').textContent =
+    `${greeting} ${emoji}`;
 }
 
 function showToast(message) {
