@@ -181,9 +181,10 @@ function toggleFavorite(key) {
   renderCategories();
 }
 
-function openDetail(key) {
+async function openDetail(key) {
   const data = RECYCLE_DATA[key];
   document.getElementById('modalTitle').textContent = `${data.icon} ${data.name} 분리배출 방법`;
+  
   let html = `<p>${data.guide}</p>`;
   html += '<div class="category-detail-card"><h4>✅ 올바른 배출 방법</h4>';
   html += '<p>' + data.rules.join('<br>') + '</p></div>';
@@ -191,7 +192,8 @@ function openDetail(key) {
   if (currentLocation && currentLocation.name) {
     html += `<div class="category-detail-card location-detail-card">`;
     html += `<h4>📍 ${currentLocation.name} 지역 기준</h4>`;
-    html += `<p>지역별 세부 기준은 지자체 홈페이지에서 확인해 주세요.<br>일반적으로 위 기준이 전국 공통으로 적용됩니다.</p></div>`;
+    html += `<div id="regional-detail-spinner" class="loading-spinner" style="padding: 20px; gap: 8px;"><div class="spinner" style="width: 24px; height: 24px;"></div><div class="loading-text" style="font-size: 12px; color: #666;">지역별 세부 기준 조회 중...</div></div>`;
+    html += `</div>`;
   }
 
   const favoriteButtonClass = favorites.includes(key) ? ' favorite-active' : '';
@@ -202,6 +204,44 @@ function openDetail(key) {
   html += '</div>';
 
   openModal(`${data.icon} ${data.name} 분리배출 방법`, html, false);
+  
+  if (currentLocation && currentLocation.name) {
+    try {
+      updateGemmaEndpoint();
+      if (isApiKeyProbablyValid()) {
+        const apiPrompt = `대한민국 분리배출 전문가로서 "${data.name}" 품목에 대해 "${currentLocation.name}" 지역의 구체적인 배출 기준을 제시하세요.
+
+다음 4가지만 한국어로 짧게 제시하세요:
+- 기준: 지역별 분류 기준
+- 배출 장소: 배출 위치
+- 특별 규정: 추가 규정
+- 참고: 한 줄 팁`;
+        
+        const body = {
+          contents: [{ parts: [{ text: apiPrompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 512 }
+        };
+        
+        const resp = await fetch(GEMMA_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        if (resp.ok) {
+          const respData = await resp.json();
+          const apiText = respData.candidates[0].content.parts[0].text;
+          const detailHtml = `<p>${renderDetailText(apiText)}</p>`;
+          const spinner = document.getElementById('regional-detail-spinner');
+          if (spinner && spinner.parentElement) {
+            spinner.parentElement.innerHTML = detailHtml;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Regional detail fetch failed:', err);
+    }
+  }
 }
 
 function closeModal() {
@@ -489,6 +529,9 @@ function renderDetailText(text) {
 function showAnalysisResult(rawText, base64Data, mimeType) {
   const cleanedText = sanitizeGemmaResponseText(rawText);
   const parsed = parseGemmaResponse(cleanedText);
+  const itemNameForFav = parsed.itemName !== '인식된 품목' ? parsed.itemName : null;
+  const isFavorite = itemNameForFav && favorites.includes(itemNameForFav.toLowerCase());
+  
   let html = `<img class="analyzed-photo" src="data:${mimeType};base64,${base64Data}" alt="분석된 사진">`;
 
   html += `<div class="result-section"><h4>🔍 인식된 품목</h4><p class="result-item-name">${parsed.itemName}</p></div>`;
@@ -514,6 +557,10 @@ function showAnalysisResult(rawText, base64Data, mimeType) {
   }
 
   html += '<div class="modal-actions">';
+  if (itemNameForFav) {
+    const favButtonClass = isFavorite ? ' favorite-active' : '';
+    html += `<button class="close-btn favorite-toggle-btn${favButtonClass}" data-action="toggle-search-favorite" data-item-name="${escapeHtml(itemNameForFav)}">${isFavorite ? '⭐ 즐겨찾기 해제' : '⭐ 즐겨찾기'}"</button>`;
+  }
   html += '<button class="close-btn modal-action-button" data-action="close-modal">확인했어요</button>';
   html += '</div>';
 
@@ -688,6 +735,7 @@ document.getElementById('modalContent').addEventListener('click', function(e) {
 
   const action = target.dataset.action;
   const category = target.dataset.category;
+  const itemName = target.dataset.itemName;
 
   if (action === 'close-modal') {
     closeModal();
@@ -696,6 +744,18 @@ document.getElementById('modalContent').addEventListener('click', function(e) {
   } else if (action === 'toggle-favorite-and-close' && category) {
     toggleFavorite(category);
     closeModal();
+  } else if (action === 'toggle-search-favorite' && itemName) {
+    const favIndex = favorites.findIndex(f => f.toLowerCase() === itemName.toLowerCase());
+    if (favIndex > -1) {
+      favorites.splice(favIndex, 1);
+      showToast(itemName + ' 즐겨찾기 해제');
+    } else {
+      favorites.push(itemName);
+      showToast(itemName + ' 즐겨찾기 추가 ⭐');
+    }
+    localStorage.setItem('recycleFavorites', JSON.stringify(favorites));
+    target.classList.toggle('favorite-active');
+    target.textContent = favIndex > -1 ? '⭐ 즐겨찾기' : '⭐ 즐겨찾기 해제';
   }
 });
 
