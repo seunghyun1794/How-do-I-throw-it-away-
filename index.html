@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>어떻게 버리지?</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="toast" id="toast"></div>
+
+  <header class="header">
+    <div class="header-top">
+      <div class="logo">♻️ 어떻게 버리지?</div>
+      <button class="location-badge" id="locationBtn">
+        <span class="loc-icon">📍</span>
+        <span id="locationText">위치 찾는 중...</span>
+      </button>
+    </div>
+    <div class="greeting">
+      <span id="greetingText">안녕하세요!</span><br>올바른 분리배출, 함께해요
+    </div>
+  </header>
+
+  <main class="main">
+
+    <div class="quick-actions">
+      <button class="quick-btn camera" id="cameraBtn">
+        <span class="btn-icon">📸</span>
+        찍어서 확인
+      </button>
+      <button class="quick-btn favorite" id="favoriteBtn">
+        <span class="btn-icon">⭐</span>
+        즐겨찾기
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">💡</div>
+        <h3>오늘의 분리배출 팁</h3>
+        <span class="badge" id="tipDate"></span>
+      </div>
+      <p class="tip-text" id="dailyTip"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">📦</div>
+        <h3>자주 버리는 품목</h3>
+      </div>
+      <div class="category-grid" id="categoryGrid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">📋</div>
+        <h3>꼭 기억하세요</h3>
+      </div>
+      <ul class="info-list">
+        <li data-category="plastic">
+          <span class="dot green"></span>
+          플라스틱 용기는 내용물을 비우고 헹궈서 배출하세요
+        </li>
+        <li data-category="paper">
+          <span class="dot orange"></span>
+          종이팩은 일반 종이류와 따로 모아 배출해요
+        </li>
+        <li data-category="glass">
+          <span class="dot blue"></span>
+          깨진 유리는 신문지로 싸서 종량제 봉투에 넣어주세요
+        </li>
+      </ul>
+    </div>
+
+  </main>
+
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-sheet">
+      <h3 id="modalTitle"></h3>
+      <div id="modalContent"></div>
+      <button class="close-btn" id="modalCloseBtn">닫기</button>
+    </div>
+  </div>
+
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" class="camera-input">
+
+  <script src="/api/env"></script>
+  <script src="script.js"></script>
+</body>
+</html>
