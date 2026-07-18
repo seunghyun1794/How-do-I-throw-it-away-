@@ -1,166 +1,437 @@
-.answer-page {
-  padding-bottom: 28px;
+:root {
+  --green: #2e7d32;
+  --green-dark: #1b5e20;
+  --green-light: #4caf50;
+  --green-pale: #e8f5e9;
+
+  --background: #f5f7fa;
+  --card: #ffffff;
+
+  --text: #1a1a2e;
+  --text-sub: #6b7280;
+
+  --error: #c62828;
+  --error-background: #ffebee;
+
+  --border: #e5e7eb;
+  --radius: 18px;
+
+  --shadow: 0 3px 16px rgba(0, 0, 0, 0.07);
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Noto Sans KR",
+    sans-serif;
+
+  background: var(--background);
+  color: var(--text);
+
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+button {
+  font: inherit;
+}
+
+/* hidden 속성 적용 */
+[hidden] {
+  display: none !important;
+}
+
+/* 상단 헤더 */
 .answer-header {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 20px 18px;
-  background: linear-gradient(135deg, var(--green), #1B5E20);
+
+  padding: 20px 18px 24px;
+
   color: white;
-  border-radius: 0 0 24px 24px;
+  background: linear-gradient(
+    135deg,
+    var(--green),
+    var(--green-dark)
+  );
+
+  border-radius: 0 0 26px 26px;
 }
 
 .back-button {
   width: 42px;
   height: 42px;
-  border: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: none;
   border-radius: 50%;
+
   background: rgba(255, 255, 255, 0.18);
   color: white;
-  font-size: 23px;
+
+  font-size: 22px;
+  font-weight: 700;
+
   cursor: pointer;
 }
 
-.answer-logo {
-  font-size: 18px;
-  font-weight: 800;
+.back-button:active {
+  transform: scale(0.95);
 }
 
-.answer-subtitle {
-  margin-top: 3px;
+.header-text {
+  min-width: 0;
+}
+
+.header-label {
+  margin-bottom: 3px;
+
+  color: #c8e6c9;
   font-size: 12px;
-  color: #C8E6C9;
+  font-weight: 700;
 }
 
+.header-text h1 {
+  font-size: 23px;
+  line-height: 1.3;
+}
+
+/* 메인 영역 */
 .answer-main {
-  padding: 18px 16px 0;
+  padding: 18px 16px 10px;
 }
 
+/* 공통 카드 */
 .question-card,
-.answer-card {
-  background: white;
+.answer-card,
+.status-card {
+  margin-bottom: 16px;
+  padding: 18px;
+
+  background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px;
+}
+
+/* 카드 제목 */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
   margin-bottom: 16px;
 }
 
-.question-label {
-  display: inline-block;
-  margin-bottom: 9px;
-  padding: 4px 9px;
-  border-radius: 10px;
+.section-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
   background: var(--green-pale);
+  border-radius: 13px;
+
+  font-size: 23px;
+}
+
+.section-label {
+  margin-bottom: 2px;
+
   color: var(--green);
   font-size: 11px;
   font-weight: 700;
 }
 
-.question-card h1 {
-  font-size: 19px;
-  line-height: 1.55;
-  word-break: keep-all;
+.section-title h2 {
+  font-size: 17px;
+  line-height: 1.4;
 }
 
-.answer-card-header {
+/* 사용자 질문 */
+.question-text {
+  padding: 15px;
+
+  color: var(--text);
+  background: #f8fafb;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.65;
+
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.location-row {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding-bottom: 14px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid #EEF1F4;
-}
+  gap: 7px;
 
-.answer-ai-icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  background: #EDE7F6;
-  font-size: 20px;
-}
+  margin-top: 13px;
+  padding: 10px 12px;
 
-.answer-card-header strong {
-  font-size: 15px;
-}
+  background: var(--green-pale);
+  border-radius: 11px;
 
-.answer-card-header p {
-  margin-top: 3px;
   color: var(--text-sub);
   font-size: 12px;
 }
 
-.answer-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 34px 8px;
-  color: var(--text-sub);
-  text-align: center;
-  font-size: 13px;
-  line-height: 1.5;
-}
+.location-row strong {
+  margin-left: auto;
 
-.answer-result {
-  white-space: pre-wrap;
-  font-size: 15px;
-  line-height: 1.75;
-  word-break: keep-all;
-}
-
-.answer-result.out-of-scope {
-  padding: 24px 12px;
-  text-align: center;
-  color: var(--text-sub);
-  font-size: 17px;
+  color: var(--green-dark);
   font-weight: 700;
+
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
-.answer-error {
+/* 로딩 및 오류 공통 */
+.status-card {
+  text-align: center;
+  padding-top: 34px;
+  padding-bottom: 34px;
+}
+
+.status-card h2 {
+  margin-top: 15px;
+  margin-bottom: 8px;
+
+  font-size: 18px;
+}
+
+.status-card p {
+  color: var(--text-sub);
+
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* 로딩 스피너 */
+.spinner {
+  width: 44px;
+  height: 44px;
+
+  margin: 0 auto;
+
+  border: 4px solid var(--green-pale);
+  border-top-color: var(--green);
+
+  border-radius: 50%;
+
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 답변 카드 */
+.answer-card {
+  border-top: 4px solid var(--green-light);
+}
+
+.answer-text {
+  min-height: 80px;
   padding: 16px;
-  border-radius: 12px;
-  background: #FFEBEE;
-  color: #C62828;
+
+  background: #f8fafb;
+  border-radius: 13px;
+
+  color: var(--text);
+
   font-size: 14px;
+  line-height: 1.8;
+
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 안내 박스 */
+.notice-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+
+  margin-top: 14px;
+  padding: 12px;
+
+  background: #e3f2fd;
+  border-radius: 11px;
+
+  color: #1565c0;
+}
+
+.notice-box span {
+  flex-shrink: 0;
+}
+
+.notice-box p {
+  font-size: 12px;
   line-height: 1.55;
 }
 
-.answer-actions {
-  display: flex;
-  gap: 14px;
+/* 오류 화면 */
+.error-section {
+  background: var(--error-background);
 }
 
-.answer-actions button {
-  flex: 1;
-  min-height: 50px;
-  border: 0;
+.error-icon {
+  font-size: 38px;
+}
+
+.error-section h2 {
+  color: var(--error);
+}
+
+.error-section p {
+  color: #8e3333;
+}
+
+/* 버튼 */
+.primary-button,
+.secondary-button {
+  width: 100%;
+  min-height: 48px;
+
+  padding: 13px 16px;
+
+  border: none;
   border-radius: 13px;
-  font: inherit;
+
   font-size: 14px;
   font-weight: 700;
+
   cursor: pointer;
+
+  transition:
+    transform 0.15s,
+    opacity 0.15s;
 }
 
-.primary-action {
+.primary-button {
   background: var(--green);
   color: white;
 }
 
-.secondary-action {
+.secondary-button {
   background: white;
   color: var(--text);
+
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
 
-[hidden] {
-  display: none !important;
+.primary-button:active,
+.secondary-button:active {
+  transform: scale(0.97);
 }
 
-#answerText {
-  white-space: pre-wrap;
-  line-height: 1.7;
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 오류 화면의 다시 시도 버튼 */
+.error-section .primary-button {
+  margin-top: 18px;
+}
+
+/* 하단 버튼 그룹 */
+.page-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+/* 푸터 */
+.site-footer {
+  padding: 14px 16px 26px;
+
+  text-align: center;
+
+  color: #8a8f98;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+/* 자바스크립트 비활성화 안내 */
+.noscript-message {
+  margin: 16px;
+  padding: 14px;
+
+  background: var(--error-background);
+  color: var(--error);
+
+  border-radius: 12px;
+
+  text-align: center;
+  font-size: 13px;
+}
+
+/* 작은 화면 */
+@media (max-width: 360px) {
+  .answer-header {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .answer-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .question-card,
+  .answer-card,
+  .status-card {
+    padding: 15px;
+  }
+
+  .header-text h1 {
+    font-size: 21px;
+  }
+
+  .question-text,
+  .answer-text {
+    font-size: 13px;
+  }
 }
