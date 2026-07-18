@@ -175,11 +175,26 @@ function isGenericItemName(value) {
 
 function updateGreeting() {
   const hour = new Date().getHours();
+
   let greeting;
-  if (hour < 12) greeting = '좋은 아침이에요!';
-  else if (hour < 18) greeting = '즐거운 오후예요!';
-  else greeting = '고생 많으셨어요!';
-  document.getElementById('greetingText').textContent = `${greeting} ☀️`;
+  let emoji;
+
+  if (hour < 6) {
+    greeting = '늦은 새벽이에요!';
+    emoji = '🌙';
+  } else if (hour < 12) {
+    greeting = '좋은 아침이에요!';
+    emoji = '☀️';
+  } else if (hour < 18) {
+    greeting = '즐거운 오후예요!';
+    emoji = '🌤️';
+  } else {
+    greeting = '고생 많으셨어요!';
+    emoji = '🌙';
+  }
+
+  document.getElementById('greetingText').textContent =
+    `${greeting} ${emoji}`;
 }
 
 function showToast(message) {
@@ -650,26 +665,30 @@ function showFavorites() {
         <h3 class="favorite-section-title">📸 촬영한 품명</h3>
         <div class="favorite-item-list">
           ${analyzedFavorites.map((item) => `
-            <article class="analyzed-favorite-card">
-              <div class="favorite-card-heading">
-                <div>
+            <details class="analyzed-favorite-card">
+              <summary class="favorite-card-summary">
+                <span class="favorite-summary-text">
                   <span class="favorite-field-label">품명</span>
                   <strong>${escapeHtml(item.itemName)}</strong>
-                </div>
-                <button type="button" class="favorite-remove-btn" data-action="remove-analyzed-favorite" data-favorite-id="${escapeHtml(item.id)}" aria-label="즐겨찾기 삭제">삭제</button>
+                  <span class="favorite-category-preview">${escapeHtml(item.category)}</span>
+                </span>
+                <span class="favorite-chevron" aria-hidden="true">⌄</span>
+              </summary>
+              <div class="favorite-card-content">
+                <dl class="favorite-detail-list">
+                  <div><dt>품목</dt><dd>${escapeHtml(item.category)}</dd></div>
+                  <div><dt>재활용</dt><dd>${escapeHtml(item.recyclable || '확인 필요')}</dd></div>
+                  <div><dt>배출 방법</dt><dd>${escapeHtml(item.disposalMethod || '지역별 배출 기준을 확인해 주세요.')}</dd></div>
+                  <div><dt>지역 기준</dt><dd>
+                    <strong>기준:</strong> ${escapeHtml(item.regional?.standard || '일반적인 기준으로 안내합니다.')}<br>
+                    <strong>배출 장소:</strong> ${escapeHtml(item.regional?.place || '가까운 행정복지센터에 확인하세요.')}<br>
+                    <strong>특별 규정:</strong> ${escapeHtml(item.regional?.specialRule || '지역에 따라 다를 수 있습니다.')}<br>
+                    <strong>참고:</strong> ${escapeHtml(item.regional?.tip || '재질과 오염 여부를 확인하세요.')}
+                  </dd></div>
+                </dl>
+                <button type="button" class="favorite-remove-btn" data-action="remove-analyzed-favorite" data-favorite-id="${escapeHtml(item.id)}">이 품명 삭제</button>
               </div>
-              <dl class="favorite-detail-list">
-                <div><dt>품목</dt><dd>${escapeHtml(item.category)}</dd></div>
-                <div><dt>재활용</dt><dd>${escapeHtml(item.recyclable || '확인 필요')}</dd></div>
-                <div><dt>배출 방법</dt><dd>${escapeHtml(item.disposalMethod || '지역별 배출 기준을 확인해 주세요.')}</dd></div>
-                <div><dt>지역 기준</dt><dd>
-                  <strong>기준:</strong> ${escapeHtml(item.regional?.standard || '일반적인 기준으로 안내합니다.')}<br>
-                  <strong>배출 장소:</strong> ${escapeHtml(item.regional?.place || '가까운 행정복지센터에 확인하세요.')}<br>
-                  <strong>특별 규정:</strong> ${escapeHtml(item.regional?.specialRule || '지역에 따라 다를 수 있습니다.')}<br>
-                  <strong>참고:</strong> ${escapeHtml(item.regional?.tip || '재질과 오염 여부를 확인하세요.')}
-                </dd></div>
-              </dl>
-            </article>
+            </details>
           `).join('')}
         </div>
       </div>`

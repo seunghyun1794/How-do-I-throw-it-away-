@@ -213,7 +213,7 @@ body {
 
 .quick-actions {
   display: flex;
-  gap: 10px;
+  gap: 16px;
   margin-bottom: 14px;
 }
 
@@ -435,9 +435,9 @@ body {
 .not-recyclable-text { color: #C62828; }
 .result-section.caution { border-left-color: #FF9800; background: #FFF3E0; }
 .result-section.caution h4 { color: #E65100; }
-.modal-action-button { margin-top: 8px; }
+.modal-action-button { margin-top: 14px; }
 .muted-text { color: #999; }
-.vertical-list { display: flex; flex-direction: column; gap: 8px; }
+.vertical-list { display: flex; flex-direction: column; gap: 12px; }
 .clickable { cursor: pointer; }
 .secondary-close-btn { background: #999; }
 
@@ -573,13 +573,13 @@ button[hidden] { display: none !important; }
 .modal-button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 14px;
 }
 
 .modal-button-stack {
   display: grid;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .secondary-action,
@@ -646,41 +646,57 @@ button[hidden] { display: none !important; }
 }
 
 .analyzed-favorite-card {
-  padding: 16px;
+  overflow: hidden;
   border: 1px solid #dfe8e1;
   border-radius: 14px;
   background: #f9fcf9;
 }
 
-.favorite-card-heading {
+.favorite-card-summary {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.favorite-card-heading strong {
-  display: block;
-  margin-top: 3px;
-  font-size: 18px;
-}
-
-.favorite-field-label {
-  font-size: 11px;
-  color: var(--text-sub);
-}
-
-.favorite-remove-btn {
-  flex: none;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: #ffebee;
-  color: #c62828;
-  font-family: inherit;
-  font-weight: 700;
+  gap: 14px;
+  padding: 16px;
   cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.favorite-card-summary::-webkit-details-marker { display: none; }
+
+.favorite-summary-text {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.favorite-summary-text strong {
+  overflow: hidden;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-category-preview {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+.favorite-chevron {
+  flex: none;
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.analyzed-favorite-card[open] .favorite-chevron {
+  transform: rotate(180deg);
+}
+
+.favorite-card-content {
+  padding: 0 16px 16px;
+  border-top: 1px solid #e7eee8;
 }
 
 .favorite-detail-list {
