@@ -1,86 +1,234 @@
 'use strict';
 
-const ASK_ENDPOINT = '/api/ask';
+const STORAGE_KEYS = {
+  question: 'recycleQuestion',
+  location: 'recycleLocation'
+};
 
-function getStoredQuestion() {
-  return (sessionStorage.getItem('recycleQuestion') || '').trim();
-}
+document.addEventListener('DOMContentLoaded', initializeAnswerPage);
 
-function getStoredLocation() {
-  return (sessionStorage.getItem('recycleQuestionLocation') || '현재 위치').trim();
-}
+/**
+ * 답변 페이지 초기화
+ */
+function initializeAnswerPage() {
+  const elements = getPageElements();
 
-function goHome() {
-  window.location.href = 'index.html';
-}
-
-function setLoading(isLoading) {
-  document.getElementById('answerLoading').hidden = !isLoading;
-}
-
-function showResult(answer, relevant) {
-  const result = document.getElementById('answerResult');
-  result.hidden = false;
-  result.classList.toggle('out-of-scope', !relevant);
-  result.textContent = relevant ? answer : '잘 모르겠습니다.';
-}
-
-function showError(message) {
-  const errorBox = document.getElementById('answerError');
-  errorBox.hidden = false;
-  errorBox.textContent = message;
-}
-
-async function requestAnswer(question, location) {
-  const response = await fetch(ASK_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, location })
-  });
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    throw new Error(data?.error || '질문에 답변하지 못했습니다.');
-  }
-
-  return data;
-}
-
-async function initializeAnswerPage() {
-  const question = getStoredQuestion();
-  const location = getStoredLocation();
-
-  document.getElementById('locationLabel').textContent = `${location} 기준`;
-
-  if (!question) {
-    document.getElementById('questionText').textContent = '입력된 질문이 없습니다.';
-    setLoading(false);
-    showError('홈 화면에서 재활용 또는 쓰레기 관련 질문을 입력해 주세요.');
+  if (!elements) {
+    console.error('답변 페이지에 필요한 HTML 요소가 없습니다.');
     return;
   }
 
-  document.getElementById('questionText').textContent = question;
+  loadAnswer(elements);
+}
+
+/**
+ * 페이지에서 사용하는 HTML 요소 가져오기
+ */
+function getPageElements() {
+  const questionElement = document.getElementById('questionText');
+  const locationElement = document.getElementById('locationText');
+  const loadingElement = document.getElementById('loadingSection');
+  const answerElement = document.getElementById('answerSection');
+  const answerTextElement = document.getElementById('answerText');
+  const errorElement = document.getElementById('errorSection');
+  const errorTextElement = document.getElementById('errorText');
+  const retryButton = document.getElementById('retryButton');
+
+  const requiredElements = [
+    questionElement,
+    loadingElement,
+    answerElement,
+    answerTextElement
+  ];
+
+  if (requiredElements.some((element) => !element)) {
+    return null;
+  }
+
+  return {
+    questionElement,
+    locationElement,
+    loadingElement,
+    answerElement,
+    answerTextElement,
+    errorElement,
+    errorTextElement,
+    retryButton
+  };
+}
+
+/**
+ * 저장된 질문을 불러오고 서버에 답변 요청
+ */
+async function loadAnswer(elements) {
+  const question = sessionStorage
+    .getItem(STORAGE_KEYS.question)
+    ?.trim();
+
+  const location =
+    sessionStorage.getItem(STORAGE_KEYS.location)?.trim() ||
+    '위치 정보 없음';
+
+  if (!question) {
+    showError(elements, '질문 정보가 없습니다.');
+    return;
+  }
+
+  elements.questionElement.textContent = question;
+
+  if (elements.locationElement) {
+    elements.locationElement.textContent = location;
+  }
+
+  showLoading(elements);
 
   try {
-    const result = await requestAnswer(question, location);
-    setLoading(false);
-    showResult(result.answer, result.relevant === true);
+    const response = await fetch('/api/ask', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        question,
+        location
+      })
+    });
+
+    const data = await readResponseData(response);
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        data.message ||
+        '서버에서 질문을 처리하지 못했습니다.'
+      );
+    }
+
+    const answer = normalizeAnswer(data.answer);
+
+    showAnswer(elements, answer);
   } catch (error) {
-    setLoading(false);
-    showError(error.message || '답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    console.error('질문 처리 오류:', error);
+
+    showError(
+      elements,
+      error instanceof Error
+        ? error.message
+        : '서버에서 질문을 처리하지 못했습니다.'
+    );
   }
 }
 
-document.getElementById('backBtn').addEventListener('click', goHome);
-document.getElementById('homeBtn').addEventListener('click', goHome);
-document.getElementById('askAgainBtn').addEventListener('click', () => {
-  goHome();
-});
+/**
+ * 서버 응답을 안전하게 읽기
+ */
+async function readResponseData(response) {
+  const contentType = response.headers.get('content-type') || '';
 
-initializeAnswerPage();
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+
+  return {
+    error: text || '서버에서 올바르지 않은 응답을 받았습니다.'
+  };
+}
+
+/**
+ * 답변 내용 정리
+ */
+function normalizeAnswer(answer) {
+  if (typeof answer !== 'string') {
+    return '잘 모르겠습니다.';
+  }
+
+  const cleanedAnswer = answer
+    .replace(/^(role|topic|reasoning|thought)\s*[:：].*$/gim, '')
+    .replace(/^(역할|주제|추론|사고\s*과정)\s*[:：].*$/gim, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return cleanedAnswer || '잘 모르겠습니다.';
+}
+
+/**
+ * 로딩 화면 표시
+ */
+function showLoading(elements) {
+  elements.loadingElement.hidden = false;
+  elements.answerElement.hidden = true;
+
+  if (elements.errorElement) {
+    elements.errorElement.hidden = true;
+  }
+
+  if (elements.retryButton) {
+    elements.retryButton.disabled = true;
+  }
+}
+
+/**
+ * 답변 화면 표시
+ */
+function showAnswer(elements, answer) {
+  // 답변 완료 후 로딩 문구 숨기기
+  elements.loadingElement.hidden = true;
+
+  if (elements.errorElement) {
+    elements.errorElement.hidden = true;
+  }
+
+  elements.answerTextElement.textContent = answer;
+  elements.answerElement.hidden = false;
+
+  if (elements.retryButton) {
+    elements.retryButton.disabled = false;
+  }
+}
+
+/**
+ * 오류 화면 표시
+ */
+function showError(elements, message) {
+  // 오류가 발생해도 로딩 문구는 반드시 숨김
+  elements.loadingElement.hidden = true;
+  elements.answerElement.hidden = true;
+
+  if (elements.errorElement && elements.errorTextElement) {
+    elements.errorTextElement.textContent = message;
+    elements.errorElement.hidden = false;
+  } else {
+    elements.answerTextElement.textContent = message;
+    elements.answerElement.hidden = false;
+  }
+
+  if (elements.retryButton) {
+    elements.retryButton.disabled = false;
+  }
+}
+
+/**
+ * 같은 질문 다시 요청
+ */
+function retryQuestion() {
+  const elements = getPageElements();
+
+  if (!elements) {
+    return;
+  }
+
+  loadAnswer(elements);
+}
+
+/**
+ * 홈 화면으로 이동
+ */
+function goHome() {
+  window.location.href = './index.html';
+}
+
+// HTML의 onclick에서도 호출할 수 있도록 등록
+window.retryQuestion = retryQuestion;
+window.goHome = goHome;
