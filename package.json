@@ -1,0 +1,13 @@
+{
+  "name": "how-do-i-throw-it-away",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Gemma 4 기반 사진 분리배출 안내 웹앱",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check script.js && node --check server.js && node --check api/analyze.js && node --check api/regional.js && node --check lib/gemma.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
