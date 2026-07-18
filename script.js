@@ -78,6 +78,7 @@ const GENERIC_ITEM_NAMES = new Set([
 let currentLocation = null;
 let regionalRequestId = 0;
 let favorites = loadFavorites();
+let analyzedFavorites = loadAnalyzedFavorites();
 
 function loadFavorites() {
   try {
@@ -91,6 +92,52 @@ function loadFavorites() {
 
 function saveFavorites() {
   localStorage.setItem('recycleFavorites', JSON.stringify(favorites));
+}
+
+function loadAnalyzedFavorites() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('analyzedRecycleFavorites') || '[]');
+    if (!Array.isArray(saved)) return [];
+
+    return saved.filter((item) =>
+      item &&
+      typeof item.id === 'string' &&
+      typeof item.itemName === 'string' &&
+      typeof item.category === 'string'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveAnalyzedFavorites() {
+  localStorage.setItem('analyzedRecycleFavorites', JSON.stringify(analyzedFavorites));
+}
+
+function createAnalyzedFavoriteId(itemName, category) {
+  return `${itemName}::${category}`
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^0-9a-z가-힣:_-]/g, '');
+}
+
+function isAnalyzedFavorite(id) {
+  return analyzedFavorites.some((item) => item.id === id);
+}
+
+function toggleAnalyzedFavorite(favoriteItem) {
+  if (!favoriteItem?.id) return false;
+
+  if (isAnalyzedFavorite(favoriteItem.id)) {
+    analyzedFavorites = analyzedFavorites.filter((item) => item.id !== favoriteItem.id);
+    showToast(`${favoriteItem.itemName} 즐겨찾기를 해제했어요.`);
+  } else {
+    analyzedFavorites.unshift(favoriteItem);
+    showToast(`${favoriteItem.itemName}을(를) 즐겨찾기에 추가했어요. ⭐`);
+  }
+
+  saveAnalyzedFavorites();
+  return isAnalyzedFavorite(favoriteItem.id);
 }
 
 function escapeHtml(value = '') {
@@ -128,26 +175,11 @@ function isGenericItemName(value) {
 
 function updateGreeting() {
   const hour = new Date().getHours();
-
   let greeting;
-  let emoji;
-
-  if (hour < 6) {
-    greeting = '늦은 새벽이에요!';
-    emoji = '🌙';
-  } else if (hour < 12) {
-    greeting = '좋은 아침이에요!';
-    emoji = '☀️';
-  } else if (hour < 18) {
-    greeting = '즐거운 오후예요!';
-    emoji = '🌤️';
-  } else {
-    greeting = '고생 많으셨어요!';
-    emoji = '🌙';
-  }
-
-  document.getElementById('greetingText').textContent =
-    `${greeting} ${emoji}`;
+  if (hour < 12) greeting = '좋은 아침이에요!';
+  else if (hour < 18) greeting = '즐거운 오후예요!';
+  else greeting = '고생 많으셨어요!';
+  document.getElementById('greetingText').textContent = `${greeting} ☀️`;
 }
 
 function showToast(message) {
@@ -518,7 +550,8 @@ function showAnalysisResult(result, imageDataUrl) {
     ? result.recyclable
     : '확인 필요';
   const categoryKey = mapCategoryToKey(category);
-  const isFavorite = categoryKey ? favorites.includes(categoryKey) : false;
+  const favoriteId = createAnalyzedFavoriteId(itemName, category);
+  const isFavorite = isAnalyzedFavorite(favoriteId);
   const confidencePercent = Math.round(confidence * 100);
   const confidenceClass = confidence < 0.65 ? ' low' : '';
 
@@ -552,10 +585,25 @@ function showAnalysisResult(result, imageDataUrl) {
     html += '<p class="confidence-warning">사진이 다소 모호해 결과가 정확하지 않을 수 있어요. 품목을 가까이에서 다시 촬영하면 더 정확해집니다.</p>';
   }
 
+  const favoritePayload = encodeURIComponent(JSON.stringify({
+    id: favoriteId,
+    itemName,
+    category,
+    recyclable,
+    disposalMethod: Array.isArray(result?.disposalSteps)
+      ? result.disposalSteps.map((step) => cleanDisplayText(step)).filter(Boolean).join(' → ')
+      : cleanDisplayText(result?.disposalSteps, '지역별 배출 기준을 확인해 주세요.'),
+    regional: {
+      standard: cleanDisplayText(result?.regional?.standard, '일반적인 분리배출 기준으로 안내합니다.'),
+      place: cleanDisplayText(result?.regional?.place, '가까운 분리배출 장소 또는 행정복지센터에 확인하세요.'),
+      specialRule: cleanDisplayText(result?.regional?.specialRule, '구·군에 따라 기준이 다를 수 있습니다.'),
+      tip: cleanDisplayText(result?.regional?.tip, '배출 전 재질과 오염 여부를 확인하세요.')
+    },
+    savedAt: new Date().toISOString()
+  }));
+
   html += '<div class="modal-button-stack">';
-  if (categoryKey) {
-    html += `<button class="close-btn favorite-toggle-btn${isFavorite ? ' favorite-active' : ''}" data-action="toggle-search-favorite" data-category="${categoryKey}">${isFavorite ? '⭐ 즐겨찾기 해제' : '⭐ 즐겨찾기'}</button>`;
-  }
+  html += `<button class="close-btn favorite-toggle-btn${isFavorite ? ' favorite-active' : ''}" data-action="toggle-analyzed-favorite" data-favorite="${favoritePayload}">${isFavorite ? '⭐ 즐겨찾기 해제' : '⭐ 이 품명 즐겨찾기'}</button>`;
   html += '<button class="close-btn" data-action="close-modal">확인했어요</button></div>';
 
   openModal('📸 AI 분석 결과', html, true);
@@ -581,33 +629,73 @@ function showFallbackResult(errorMessage = '') {
 }
 
 function showFavorites() {
-  if (favorites.length === 0) {
+  const hasCategoryFavorites = favorites.some((key) => RECYCLE_DATA[key]);
+  const hasAnalyzedFavorites = analyzedFavorites.length > 0;
+
+  if (!hasCategoryFavorites && !hasAnalyzedFavorites) {
     const html = `
       <div class="empty-state">
         <div class="empty-state-icon">⭐</div>
-        <h4>즐겨찾기한 품목이 없어요</h4>
-        <p>자주 확인하는 품목을 길게 누르거나, 상세 화면에서 즐겨찾기에 추가해 보세요.</p>
-        <button class="close-btn" data-action="close-modal">품목 둘러보기</button>
+        <h4>즐겨찾기한 품명이 없어요</h4>
+        <p>사진을 촬영해 분석한 뒤, 결과 화면에서 ‘이 품명 즐겨찾기’를 눌러 추가해 보세요.</p>
+        <button class="close-btn" data-action="close-modal">확인</button>
       </div>
     `;
     openModal('⭐ 즐겨찾기', html, true);
     return;
   }
 
-  const validFavorites = favorites.filter((key) => RECYCLE_DATA[key]);
-  const html = `
-    <div class="vertical-list">
-      ${validFavorites.map((key) => {
-        const data = RECYCLE_DATA[key];
-        return `<button class="category-detail-card clickable text-button" data-action="open-detail" data-category="${key}">
-          <strong>${data.icon} ${escapeHtml(data.name)}</strong>
-          <span>${escapeHtml(data.guide.slice(0, 55))}...</span>
-        </button>`;
-      }).join('')}
-    </div>
-    <button class="close-btn modal-action-button" data-action="close-modal">닫기</button>
-  `;
-  openModal('⭐ 즐겨찾기한 품목', html, true);
+  const analyzedHtml = hasAnalyzedFavorites
+    ? `<div class="favorite-section">
+        <h3 class="favorite-section-title">📸 촬영한 품명</h3>
+        <div class="favorite-item-list">
+          ${analyzedFavorites.map((item) => `
+            <article class="analyzed-favorite-card">
+              <div class="favorite-card-heading">
+                <div>
+                  <span class="favorite-field-label">품명</span>
+                  <strong>${escapeHtml(item.itemName)}</strong>
+                </div>
+                <button type="button" class="favorite-remove-btn" data-action="remove-analyzed-favorite" data-favorite-id="${escapeHtml(item.id)}" aria-label="즐겨찾기 삭제">삭제</button>
+              </div>
+              <dl class="favorite-detail-list">
+                <div><dt>품목</dt><dd>${escapeHtml(item.category)}</dd></div>
+                <div><dt>재활용</dt><dd>${escapeHtml(item.recyclable || '확인 필요')}</dd></div>
+                <div><dt>배출 방법</dt><dd>${escapeHtml(item.disposalMethod || '지역별 배출 기준을 확인해 주세요.')}</dd></div>
+                <div><dt>지역 기준</dt><dd>
+                  <strong>기준:</strong> ${escapeHtml(item.regional?.standard || '일반적인 기준으로 안내합니다.')}<br>
+                  <strong>배출 장소:</strong> ${escapeHtml(item.regional?.place || '가까운 행정복지센터에 확인하세요.')}<br>
+                  <strong>특별 규정:</strong> ${escapeHtml(item.regional?.specialRule || '지역에 따라 다를 수 있습니다.')}<br>
+                  <strong>참고:</strong> ${escapeHtml(item.regional?.tip || '재질과 오염 여부를 확인하세요.')}
+                </dd></div>
+              </dl>
+            </article>
+          `).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const categoryFavorites = favorites.filter((key) => RECYCLE_DATA[key]);
+  const categoryHtml = categoryFavorites.length
+    ? `<div class="favorite-section">
+        <h3 class="favorite-section-title">📦 자주 보는 분류</h3>
+        <div class="vertical-list">
+          ${categoryFavorites.map((key) => {
+            const data = RECYCLE_DATA[key];
+            return `<button class="category-detail-card clickable text-button" data-action="open-detail" data-category="${key}">
+              <strong>${data.icon} ${escapeHtml(data.name)}</strong>
+              <span>${escapeHtml(data.guide.slice(0, 55))}...</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`
+    : '';
+
+  openModal(
+    '⭐ 즐겨찾기',
+    `${analyzedHtml}${categoryHtml}<button class="close-btn modal-action-button" data-action="close-modal">닫기</button>`,
+    true
+  );
 }
 
 function bindEvents() {
@@ -638,11 +726,20 @@ function bindEvents() {
     } else if (action === 'toggle-favorite-and-close' && category) {
       toggleFavorite(category);
       closeModal();
-    } else if (action === 'toggle-search-favorite' && category) {
-      toggleFavorite(category);
-      const isFavorite = favorites.includes(category);
-      target.classList.toggle('favorite-active', isFavorite);
-      target.textContent = isFavorite ? '⭐ 즐겨찾기 해제' : '⭐ 즐겨찾기';
+    } else if (action === 'toggle-analyzed-favorite' && target.dataset.favorite) {
+      try {
+        const favoriteItem = JSON.parse(decodeURIComponent(target.dataset.favorite));
+        const isFavorite = toggleAnalyzedFavorite(favoriteItem);
+        target.classList.toggle('favorite-active', isFavorite);
+        target.textContent = isFavorite ? '⭐ 즐겨찾기 해제' : '⭐ 이 품명 즐겨찾기';
+      } catch (error) {
+        console.warn('즐겨찾기 정보 처리 실패:', error);
+        showToast('즐겨찾기를 처리하지 못했어요.');
+      }
+    } else if (action === 'remove-analyzed-favorite' && target.dataset.favoriteId) {
+      const item = analyzedFavorites.find((favorite) => favorite.id === target.dataset.favoriteId);
+      if (item) toggleAnalyzedFavorite(item);
+      showFavorites();
     }
   });
 

@@ -213,8 +213,8 @@ body {
 
 .quick-actions {
   display: flex;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .quick-btn {
@@ -299,11 +299,6 @@ body {
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-}
-
-
-#modalContent + .close-btn {
-  margin-top: 14px;
 }
 
 .category-detail-card {
@@ -442,7 +437,7 @@ body {
 .result-section.caution h4 { color: #E65100; }
 .modal-action-button { margin-top: 8px; }
 .muted-text { color: #999; }
-.vertical-list { display: flex; flex-direction: column; gap: 12px; }
+.vertical-list { display: flex; flex-direction: column; gap: 8px; }
 .clickable { cursor: pointer; }
 .secondary-close-btn { background: #999; }
 
@@ -578,13 +573,13 @@ button[hidden] { display: none !important; }
 .modal-button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 8px;
 }
 
 .modal-button-stack {
   display: grid;
-  gap: 14px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .secondary-action,
@@ -633,4 +628,84 @@ button[hidden] { display: none !important; }
   color: var(--text-sub);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.favorite-section + .favorite-section {
+  margin-top: 20px;
+}
+
+.favorite-section-title {
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.favorite-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analyzed-favorite-card {
+  padding: 16px;
+  border: 1px solid #dfe8e1;
+  border-radius: 14px;
+  background: #f9fcf9;
+}
+
+.favorite-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.favorite-card-heading strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+}
+
+.favorite-field-label {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.favorite-remove-btn {
+  flex: none;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #ffebee;
+  color: #c62828;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.favorite-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.favorite-detail-list > div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #e7eee8;
+}
+
+.favorite-detail-list dt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.favorite-detail-list dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub);
 }
