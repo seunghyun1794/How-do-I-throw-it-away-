@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>질문 답변 | 어떻게 버리지?</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="answer.css">
+</head>
+<body class="answer-page">
+  <header class="answer-header">
+    <button class="back-button" id="backBtn" type="button" aria-label="홈으로 돌아가기">←</button>
+    <div>
+      <div class="answer-logo">♻️ 어떻게 버리지?</div>
+      <div class="answer-subtitle">Gemma 재활용 질문 답변</div>
+    </div>
+  </header>
+
+  <main class="answer-main">
+    <section class="question-card">
+      <span class="question-label">내 질문</span>
+      <h1 id="questionText">질문을 불러오는 중...</h1>
+    </section>
+
+    <section class="answer-card" aria-live="polite">
+      <div class="answer-card-header">
+        <span class="answer-ai-icon">✨</span>
+        <div>
+          <strong>Gemma 답변</strong>
+          <p id="locationLabel">현재 위치 기준</p>
+        </div>
+      </div>
+
+      <div id="answerLoading" class="answer-loading">
+        <div class="spinner"></div>
+        <p>재활용 관련 질문인지 확인하고 답변을 만들고 있어요.</p>
+      </div>
+
+      <div id="answerResult" class="answer-result" hidden></div>
+      <div id="answerError" class="answer-error" hidden></div>
+    </section>
+
+    <div class="answer-actions">
+      <button class="secondary-action" id="askAgainBtn" type="button">다른 질문하기</button>
+      <button class="primary-action" id="homeBtn" type="button">홈으로</button>
+    </div>
+  </main>
+
+  <script src="answer.js"></script>
+</body>
+</html>

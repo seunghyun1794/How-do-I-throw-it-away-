@@ -25,6 +25,19 @@
 
   <main class="main">
 
+    <form class="question-bar" id="questionForm">
+      <label class="sr-only" for="questionInput">재활용 또는 쓰레기 관련 질문</label>
+      <input
+        id="questionInput"
+        type="search"
+        maxlength="200"
+        placeholder="재활용·쓰레기 관련 질문을 입력하세요"
+        autocomplete="off"
+        required
+      >
+      <button type="submit" aria-label="질문하기">질문</button>
+    </form>
+
     <div class="quick-actions">
       <button class="quick-btn camera" id="cameraBtn">
         <span class="btn-icon">📸</span>

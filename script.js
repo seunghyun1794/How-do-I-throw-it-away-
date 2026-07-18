@@ -719,6 +719,23 @@ function showFavorites() {
 
 function bindEvents() {
   document.getElementById('locationBtn').addEventListener('click', requestLocation);
+  document.getElementById('questionForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    if (!question) {
+      showToast('질문을 입력해 주세요.');
+      input.focus();
+      return;
+    }
+
+    sessionStorage.setItem('recycleQuestion', question);
+    sessionStorage.setItem(
+      'recycleQuestionLocation',
+      currentLocation?.name || document.getElementById('locationText').textContent || '현재 위치'
+    );
+    window.location.href = 'answer.html';
+  });
   document.getElementById('cameraBtn').addEventListener('click', openCamera);
   document.getElementById('favoriteBtn').addEventListener('click', showFavorites);
   document.getElementById('modalCloseBtn').addEventListener('click', closeModal);

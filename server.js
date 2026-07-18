@@ -8,7 +8,7 @@ const MAX_BODY_SIZE = 6 * 1024 * 1024;
 
 loadEnv(path.join(ROOT, '.env'));
 const PORT = Number(process.env.PORT || 3000);
-const { analyzeImage, getRegionalGuide } = require('./lib/gemma');
+const { analyzeImage, getRegionalGuide, answerRecyclingQuestion } = require('./lib/gemma');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -89,6 +89,15 @@ async function handleApi(req, res, pathname) {
     if (pathname === '/api/regional') {
       const result = await getRegionalGuide({
         itemName: body.itemName,
+        location: body.location
+      });
+      sendJson(res, 200, result);
+      return;
+    }
+
+    if (pathname === '/api/ask') {
+      const result = await answerRecyclingQuestion({
+        question: body.question,
         location: body.location
       });
       sendJson(res, 200, result);
