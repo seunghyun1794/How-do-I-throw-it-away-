@@ -76,6 +76,7 @@ const GENERIC_ITEM_NAMES = new Set([
 ]);
 
 let currentLocation = null;
+let locationRequestPromise = null;
 let regionalRequestId = 0;
 let favorites = loadFavorites();
 let analyzedFavorites = loadAnalyzedFavorites();
@@ -176,8 +177,7 @@ function isGenericItemName(value) {
 function updateGreeting() {
   const hour = new Date().getHours();
   let greeting;
-  if (hour < 6) greeting = '늦은 밤까지 고생 많으셨어요!';
-  else if (hour < 12) greeting = '좋은 아침이에요!';
+  if (hour < 12) greeting = '좋은 아침이에요!';
   else if (hour < 18) greeting = '즐거운 오후예요!';
   else greeting = '고생 많으셨어요!';
   document.getElementById('greetingText').textContent = `${greeting} ☀️`;
@@ -197,26 +197,63 @@ function setLocationText(text) {
   locationText.classList.remove('loading');
 }
 
+function saveResolvedLocation(name) {
+  const normalized = String(name || '').trim();
+  if (!normalized || ['찾는 중...', '위치 정보 불가', '위치 미확인'].includes(normalized)) return;
+
+  sessionStorage.setItem('recycleLocation', normalized);
+  sessionStorage.setItem('recycleQuestionLocation', normalized);
+  localStorage.setItem('lastRecycleLocation', normalized);
+}
+
 function requestLocation() {
+  // 위치 요청이 진행 중이면 같은 Promise를 재사용합니다.
+  if (locationRequestPromise) return locationRequestPromise;
+
   const locationText = document.getElementById('locationText');
   locationText.classList.add('loading');
   locationText.textContent = '찾는 중...';
 
-  if (!navigator.geolocation) {
-    setLocationText('위치 정보 불가');
-    showToast('이 브라우저에서는 위치 정보를 사용할 수 없어요.');
-    return;
+  locationRequestPromise = new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      setLocationText('위치 정보 불가');
+      showToast('이 브라우저에서는 위치 정보를 사용할 수 없어요.');
+      resolve(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        await getDistrictName(coords.latitude, coords.longitude);
+        resolve(currentLocation);
+      },
+      () => {
+        currentLocation = null;
+        setLocationText('위치 미확인');
+        showToast('위치 권한이 없어 일반 기준으로 안내합니다.');
+        resolve(null);
+      },
+      { timeout: 7000, maximumAge: 300000, enableHighAccuracy: true }
+    );
+  }).finally(() => {
+    locationRequestPromise = null;
+  });
+
+  return locationRequestPromise;
+}
+
+async function getQuestionLocation() {
+  // 아직 위치 확인 중이면 완료될 때까지 기다립니다.
+  if (!currentLocation?.name) {
+    await requestLocation();
   }
 
-  navigator.geolocation.getCurrentPosition(
-    ({ coords }) => getDistrictName(coords.latitude, coords.longitude),
-    () => {
-      currentLocation = { name: '위치 미확인' };
-      setLocationText('위치 미확인');
-      showToast('위치 권한이 없어 일반 기준으로 안내합니다.');
-    },
-    { timeout: 7000, maximumAge: 300000, enableHighAccuracy: true }
-  );
+  const displayedLocation = document.getElementById('locationText')?.textContent?.trim() || '';
+  const cachedLocation = localStorage.getItem('lastRecycleLocation') || '';
+  const candidates = [currentLocation?.name, displayedLocation, cachedLocation];
+  const invalid = new Set(['', '찾는 중...', '위치 정보 불가', '위치 미확인', '현재 위치']);
+
+  return candidates.find((value) => value && !invalid.has(value)) || '위치 정보 없음';
 }
 
 async function getDistrictName(lat, lng) {
@@ -244,6 +281,7 @@ async function getDistrictName(lat, lng) {
 
     currentLocation = { lat, lng, name };
     setLocationText(name);
+    saveResolvedLocation(name);
   } catch (error) {
     console.warn(error);
     currentLocation = { lat, lng, name: '현재 위치' };
@@ -711,24 +749,29 @@ function showFavorites() {
 
 function bindEvents() {
   document.getElementById('locationBtn').addEventListener('click', requestLocation);
-  document.getElementById('questionForm').addEventListener('submit', (event) => {
+  document.getElementById('questionForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const input = document.getElementById('questionInput');
+    const submitButton = event.currentTarget.querySelector('button[type="submit"]');
     const question = input.value.trim();
+
     if (!question) {
       showToast('질문을 입력해 주세요.');
       input.focus();
       return;
     }
 
-    const displayedLocation = document.getElementById('locationText').textContent.trim();
-    const locationName = currentLocation?.name || displayedLocation || '위치 정보 없음';
+    if (submitButton) submitButton.disabled = true;
 
-    sessionStorage.setItem('recycleQuestion', question);
-    sessionStorage.setItem('recycleLocation', locationName);
-    // 기존 저장 키를 사용하는 이전 버전과도 호환합니다.
-    sessionStorage.setItem('recycleQuestionLocation', locationName);
-    window.location.href = 'answer.html';
+    try {
+      const locationName = await getQuestionLocation();
+      sessionStorage.setItem('recycleQuestion', question);
+      sessionStorage.setItem('recycleLocation', locationName);
+      sessionStorage.setItem('recycleQuestionLocation', locationName);
+      window.location.href = `answer.html?q=${encodeURIComponent(question)}&location=${encodeURIComponent(locationName)}`;
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
   });
   document.getElementById('cameraBtn').addEventListener('click', openCamera);
   document.getElementById('favoriteBtn').addEventListener('click', showFavorites);

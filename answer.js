@@ -7,17 +7,18 @@ const STORAGE_KEYS = {
   legacyLocation: 'recycleQuestionLocation'
 };
 
-function getStoredQuestion() {
-  return (sessionStorage.getItem(STORAGE_KEYS.question) || '').trim();
+function firstElement(...ids) {
+  for (const id of ids) {
+    const element = document.getElementById(id);
+    if (element) return element;
+  }
+  return null;
 }
 
-function normalizeStoredLocation(value) {
+function normalizeLocation(value) {
   if (typeof value !== 'string') return '위치 정보 없음';
-
   let text = value.trim();
-  if (!text || text === '[object Object]') return '위치 정보 없음';
 
-  // 이전 버전에서 위치 객체를 JSON 문자열로 저장한 경우도 처리합니다.
   if (text.startsWith('{') && text.endsWith('}')) {
     try {
       const parsed = JSON.parse(text);
@@ -27,60 +28,92 @@ function normalizeStoredLocation(value) {
     }
   }
 
-  const invalidValues = new Set([
-    '',
-    '찾는 중...',
-    '위치 정보 불가',
-    '위치 미확인',
-    '[object Object]'
+  const invalid = new Set([
+    '', '[object Object]', '찾는 중...', '현재 위치',
+    '위치 정보 불가', '위치 미확인', '위치 정보 없음'
   ]);
-
-  return invalidValues.has(text) ? '위치 정보 없음' : text.slice(0, 80);
+  return invalid.has(text) ? '위치 정보 없음' : text.slice(0, 80);
 }
 
-function getStoredLocation() {
-  const currentValue = sessionStorage.getItem(STORAGE_KEYS.location);
-  const legacyValue = sessionStorage.getItem(STORAGE_KEYS.legacyLocation);
-  return normalizeStoredLocation(currentValue || legacyValue || '');
+function readPageData() {
+  const params = new URLSearchParams(window.location.search);
+  const question = (
+    sessionStorage.getItem(STORAGE_KEYS.question) ||
+    params.get('q') ||
+    ''
+  ).trim();
+
+  const location = normalizeLocation(
+    sessionStorage.getItem(STORAGE_KEYS.location) ||
+    sessionStorage.getItem(STORAGE_KEYS.legacyLocation) ||
+    localStorage.getItem('lastRecycleLocation') ||
+    params.get('location') ||
+    ''
+  );
+
+  return { question, location };
+}
+
+function getElements() {
+  return {
+    question: firstElement('questionText'),
+    location: firstElement('locationLabel', 'locationText'),
+    loading: firstElement('answerLoading', 'loadingSection'),
+    resultBox: firstElement('answerResult', 'answerSection'),
+    resultText: firstElement('answerText', 'answerResult'),
+    errorBox: firstElement('answerError', 'errorSection'),
+    errorText: firstElement('errorText', 'answerError'),
+    backButton: firstElement('backBtn'),
+    homeButton: firstElement('homeBtn'),
+    askAgainButton: firstElement('askAgainBtn'),
+    retryButton: firstElement('retryButton')
+  };
 }
 
 function goHome() {
-  window.location.href = 'index.html';
+  window.location.href = './index.html';
 }
 
-function setLoading(isLoading) {
-  const loading = document.getElementById('answerLoading');
-  if (loading) loading.hidden = !isLoading;
+function setHidden(element, hidden) {
+  if (element) element.hidden = hidden;
 }
 
-function resetMessages() {
-  const result = document.getElementById('answerResult');
-  const error = document.getElementById('answerError');
-  if (result) {
-    result.hidden = true;
-    result.textContent = '';
+function showLoading(elements) {
+  setHidden(elements.loading, false);
+  setHidden(elements.resultBox, true);
+  setHidden(elements.errorBox, true);
+}
+
+function showAnswer(elements, answer, relevant = true) {
+  setHidden(elements.loading, true);
+  setHidden(elements.errorBox, true);
+  setHidden(elements.resultBox, false);
+
+  const text = relevant
+    ? String(answer || '').trim() || '잘 모르겠습니다.'
+    : '잘 모르겠습니다.';
+
+  if (elements.resultText) elements.resultText.textContent = text;
+  elements.resultBox?.classList.toggle('out-of-scope', !relevant);
+}
+
+function showError(elements, message) {
+  setHidden(elements.loading, true);
+  setHidden(elements.resultBox, true);
+  setHidden(elements.errorBox, false);
+
+  if (elements.errorText) {
+    elements.errorText.textContent = message;
+  } else if (elements.resultText) {
+    setHidden(elements.resultBox, false);
+    elements.resultText.textContent = message;
   }
-  if (error) {
-    error.hidden = true;
-    error.textContent = '';
-  }
 }
 
-function showResult(answer, relevant) {
-  const result = document.getElementById('answerResult');
-  if (!result) return;
-
-  result.hidden = false;
-  result.classList.toggle('out-of-scope', !relevant);
-  result.textContent = relevant ? String(answer || '').trim() : '잘 모르겠습니다.';
-}
-
-function showError(message) {
-  const errorBox = document.getElementById('answerError');
-  if (!errorBox) return;
-
-  errorBox.hidden = false;
-  errorBox.textContent = message;
+async function readResponse(response) {
+  const type = response.headers.get('content-type') || '';
+  if (type.includes('application/json')) return response.json();
+  return { error: (await response.text()).trim() };
 }
 
 async function requestAnswer(question, location) {
@@ -90,58 +123,57 @@ async function requestAnswer(question, location) {
     body: JSON.stringify({ question, location })
   });
 
-  const contentType = response.headers.get('content-type') || '';
-  let data = null;
-
-  try {
-    data = contentType.includes('application/json')
-      ? await response.json()
-      : { error: await response.text() };
-  } catch {
-    data = null;
-  }
-
+  const data = await readResponse(response);
   if (!response.ok) {
-    throw new Error(data?.error || '질문에 답변하지 못했습니다.');
+    throw new Error(data.error || data.message || '서버에서 질문을 처리하지 못했습니다.');
   }
-
-  return data || {};
+  return data;
 }
 
-async function initializeAnswerPage() {
-  const question = getStoredQuestion();
-  const location = getStoredLocation();
+async function loadAnswer(elements) {
+  const { question, location } = readPageData();
 
-  resetMessages();
-  document.getElementById('locationLabel').textContent =
-    location === '위치 정보 없음'
-      ? '일반적인 기준'
-      : `${location} 기준`;
-
-  if (!question) {
-    document.getElementById('questionText').textContent = '입력된 질문이 없습니다.';
-    setLoading(false);
-    showError('홈 화면에서 재활용 또는 쓰레기 관련 질문을 입력해 주세요.');
+  if (!elements.question || !elements.loading || !elements.resultBox) {
+    console.error('answer.html과 answer.js의 요소 ID가 일치하지 않습니다.');
     return;
   }
 
-  document.getElementById('questionText').textContent = question;
-  setLoading(true);
+  elements.question.textContent = question || '입력된 질문이 없습니다.';
+  if (elements.location) {
+    elements.location.textContent = location === '위치 정보 없음'
+      ? '일반적인 기준'
+      : `${location} 기준`;
+  }
+
+  if (!question) {
+    showError(elements, '홈 화면에서 질문을 다시 입력해 주세요.');
+    return;
+  }
+
+  showLoading(elements);
 
   try {
-    const result = await requestAnswer(question, location);
-    setLoading(false);
-    showResult(result.answer, result.relevant === true);
+    const data = await requestAnswer(question, location);
+    showAnswer(elements, data.answer, data.relevant !== false);
   } catch (error) {
-    setLoading(false);
-    showError(error instanceof Error
-      ? error.message
-      : '답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    console.error('질문 처리 오류:', error);
+    showError(
+      elements,
+      error instanceof Error ? error.message : '답변을 불러오지 못했습니다.'
+    );
   }
 }
 
-document.getElementById('backBtn')?.addEventListener('click', goHome);
-document.getElementById('homeBtn')?.addEventListener('click', goHome);
-document.getElementById('askAgainBtn')?.addEventListener('click', goHome);
+function initialize() {
+  const elements = getElements();
+  elements.backButton?.addEventListener('click', goHome);
+  elements.homeButton?.addEventListener('click', goHome);
+  elements.askAgainButton?.addEventListener('click', goHome);
+  elements.retryButton?.addEventListener('click', () => loadAnswer(elements));
+  loadAnswer(elements);
+}
 
-document.addEventListener('DOMContentLoaded', initializeAnswerPage);
+window.goHome = goHome;
+window.retryQuestion = () => loadAnswer(getElements());
+
+document.addEventListener('DOMContentLoaded', initialize);
