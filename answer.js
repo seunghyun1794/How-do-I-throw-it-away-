@@ -1,8 +1,7 @@
 'use strict';
 
 const STORAGE_KEYS = {
-  question: 'recycleQuestion',
-  location: 'recycleLocation'
+  question: 'recycleQuestion'
 };
 
 document.addEventListener('DOMContentLoaded', initializeAnswerPage);
@@ -26,7 +25,6 @@ function initializeAnswerPage() {
  */
 function getPageElements() {
   const questionElement = document.getElementById('questionText');
-  const locationElement = document.getElementById('locationText');
   const loadingElement = document.getElementById('loadingSection');
   const answerElement = document.getElementById('answerSection');
   const answerTextElement = document.getElementById('answerText');
@@ -47,7 +45,6 @@ function getPageElements() {
 
   return {
     questionElement,
-    locationElement,
     loadingElement,
     answerElement,
     answerTextElement,
@@ -65,21 +62,12 @@ async function loadAnswer(elements) {
     .getItem(STORAGE_KEYS.question)
     ?.trim();
 
-  const location =
-    sessionStorage.getItem(STORAGE_KEYS.location)?.trim() ||
-    '위치 정보 없음';
-
   if (!question) {
     showError(elements, '질문 정보가 없습니다.');
     return;
   }
 
   elements.questionElement.textContent = question;
-
-  if (elements.locationElement) {
-    elements.locationElement.textContent = location;
-  }
-
   showLoading(elements);
 
   try {
@@ -88,10 +76,7 @@ async function loadAnswer(elements) {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        question,
-        location
-      })
+      body: JSON.stringify({ question })
     });
 
     const data = await readResponseData(response);
@@ -105,7 +90,6 @@ async function loadAnswer(elements) {
     }
 
     const answer = normalizeAnswer(data.answer);
-
     showAnswer(elements, answer);
   } catch (error) {
     console.error('질문 처리 오류:', error);
@@ -153,60 +137,46 @@ function normalizeAnswer(answer) {
   return cleanedAnswer || '잘 모르겠습니다.';
 }
 
+function setViewState(elements, state) {
+  elements.loadingElement.hidden = state !== 'loading';
+  elements.answerElement.hidden = state !== 'answer';
+
+  if (elements.errorElement) {
+    elements.errorElement.hidden = state !== 'error';
+  }
+
+  if (elements.retryButton) {
+    elements.retryButton.disabled = state === 'loading';
+  }
+}
+
 /**
  * 로딩 화면 표시
  */
 function showLoading(elements) {
-  elements.loadingElement.hidden = false;
-  elements.answerElement.hidden = true;
-
-  if (elements.errorElement) {
-    elements.errorElement.hidden = true;
-  }
-
-  if (elements.retryButton) {
-    elements.retryButton.disabled = true;
-  }
+  setViewState(elements, 'loading');
 }
 
 /**
  * 답변 화면 표시
  */
 function showAnswer(elements, answer) {
-  // 답변 완료 후 로딩 문구 숨기기
-  elements.loadingElement.hidden = true;
-
-  if (elements.errorElement) {
-    elements.errorElement.hidden = true;
-  }
-
   elements.answerTextElement.textContent = answer;
-  elements.answerElement.hidden = false;
-
-  if (elements.retryButton) {
-    elements.retryButton.disabled = false;
-  }
+  setViewState(elements, 'answer');
 }
 
 /**
  * 오류 화면 표시
  */
 function showError(elements, message) {
-  // 오류가 발생해도 로딩 문구는 반드시 숨김
-  elements.loadingElement.hidden = true;
-  elements.answerElement.hidden = true;
-
   if (elements.errorElement && elements.errorTextElement) {
     elements.errorTextElement.textContent = message;
-    elements.errorElement.hidden = false;
-  } else {
-    elements.answerTextElement.textContent = message;
-    elements.answerElement.hidden = false;
+    setViewState(elements, 'error');
+    return;
   }
 
-  if (elements.retryButton) {
-    elements.retryButton.disabled = false;
-  }
+  elements.answerTextElement.textContent = message;
+  setViewState(elements, 'answer');
 }
 
 /**

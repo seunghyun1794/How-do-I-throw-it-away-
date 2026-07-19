@@ -189,31 +189,6 @@ button {
   overflow-wrap: break-word;
 }
 
-.location-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-
-  margin-top: 13px;
-  padding: 10px 12px;
-
-  background: var(--green-pale);
-  border-radius: 11px;
-
-  color: var(--text-sub);
-  font-size: 12px;
-}
-
-.location-row strong {
-  margin-left: auto;
-
-  color: var(--green-dark);
-  font-weight: 700;
-
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-
 /* 로딩 및 오류 공통 */
 .status-card {
   text-align: center;
