@@ -175,26 +175,12 @@ function isGenericItemName(value) {
 
 function updateGreeting() {
   const hour = new Date().getHours();
-
   let greeting;
-  let emoji;
-
-  if (hour < 6) {
-    greeting = '늦은 새벽이에요!';
-    emoji = '🌙';
-  } else if (hour < 12) {
-    greeting = '좋은 아침이에요!';
-    emoji = '☀️';
-  } else if (hour < 18) {
-    greeting = '즐거운 오후예요!';
-    emoji = '🌤️';
-  } else {
-    greeting = '고생 많으셨어요!';
-    emoji = '🌙';
-  }
-
-  document.getElementById('greetingText').textContent =
-    `${greeting} ${emoji}`;
+  if (hour < 6) greeting = '늦은 밤까지 고생 많으셨어요!';
+  else if (hour < 12) greeting = '좋은 아침이에요!';
+  else if (hour < 18) greeting = '즐거운 오후예요!';
+  else greeting = '고생 많으셨어요!';
+  document.getElementById('greetingText').textContent = `${greeting} ☀️`;
 }
 
 function showToast(message) {
@@ -246,9 +232,15 @@ async function getDistrictName(lat, lng) {
     if (!response.ok) throw new Error('위치 이름 조회 실패');
     const data = await response.json();
     const address = data.address || {};
-    const city = address.city || address.metropolitan_city || address.province || address.town || address.county || '';
+    const region = address.state || address.province || address.metropolitan_city || '';
+    const city = address.city || address.county || address.town || address.municipality || '';
     const district = address.borough || address.city_district || address.suburb || address.village || '';
-    const name = `${city} ${district}`.trim() || '현재 위치';
+    const name = [region, city, district]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .filter((value, index, values) => values.indexOf(value) === index)
+      .join(' ')
+      .trim() || '현재 위치';
 
     currentLocation = { lat, lng, name };
     setLocationText(name);
@@ -729,11 +721,13 @@ function bindEvents() {
       return;
     }
 
+    const displayedLocation = document.getElementById('locationText').textContent.trim();
+    const locationName = currentLocation?.name || displayedLocation || '위치 정보 없음';
+
     sessionStorage.setItem('recycleQuestion', question);
-    sessionStorage.setItem(
-      'recycleQuestionLocation',
-      currentLocation?.name || document.getElementById('locationText').textContent || '현재 위치'
-    );
+    sessionStorage.setItem('recycleLocation', locationName);
+    // 기존 저장 키를 사용하는 이전 버전과도 호환합니다.
+    sessionStorage.setItem('recycleQuestionLocation', locationName);
     window.location.href = 'answer.html';
   });
   document.getElementById('cameraBtn').addEventListener('click', openCamera);
